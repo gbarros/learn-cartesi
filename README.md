@@ -1,7 +1,5 @@
-# TypeScript DApp Template
+# Tutorial to learn how to use Cartesi Rollups
 
-This is a template for TypeScript Cartesi DApps. It uses node to execute the backend application.
-The application entrypoint is the `src/index.ts` file. It is bundled with [esbuild](https://esbuild.github.io), but any bundler can be used.
+This has a special focus on using Sunodo and deroll to interact with the rollup.
 
-
-@TODO change me
+Check the [instructions](./Instructions.MD) and enjoy!

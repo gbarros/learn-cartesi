@@ -26,7 +26,10 @@ if on windows, you should have wsl2 installed and running.
 
 3. run your node for the 1st time
 
-    > sunodo run
+    ```bash
+    sunodo build
+    sunodo run
+    ``````
 
 4. Lets inform it of its own ethereum address on the base layer
 
@@ -231,3 +234,49 @@ As usual, you can find the final script at [`src/fourth.ts`](./src/fourth.ts) fi
     curl http://localhost:8080/inspect/wallet/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
     ```
 
+## 5. Changing the state
+
+Now that we learned how to send and manage the 2 types of requests, let's learn how to change the state of the application.
+
+### 5.1 Transfer of funds
+
+Final version of the script can be found at [`src/fifth.ts`](./src/fifth.ts) file in this repo.
+
+1. Make a deposit again using sunodo
+
+    > sunodo send ether --amount=10
+
+2. Add a transfer function to your advance handler
+
+    2.1 a new function to the abi
+    ```typescript
+    "function transfer(address to, uint256 amount)",
+    ```
+    2.2 a new variable at the handler definition, the `metadata`: 
+    ```typescript
+    app.addAdvanceHandler(async ({ payload, metadata }) => {
+    ```
+    2.3 a new case to the switch statement
+    ```typescript
+    case "transfer":
+        const [to, amount] = args;
+        console.log(`Transfering ${amount} to ${to}`);
+        wallet.transferEther(metadata.msg_sender, to, amount);
+        return "accept";
+    ```
+
+3. Test the transfer function
+
+    3.1 Encode the transfer function
+    ```bash
+    cast calldata "transfer(address,uint256)" 0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C 10 # this is the address of the dapp
+    ```
+    3.2 Send the transaction
+    ```bash
+    sunodo send generic --input=0xa9059cbb00000000000000000000000070ac08179605af2d9e75782b8decdd3c22aa4d0c000000000000000000000000000000000000000000000000000000000000000a
+    ```
+
+    3.3 Check the balance of the dapp address
+    ```bash
+    curl http://localhost:8080/inspect/wallet/0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C
+    ```
