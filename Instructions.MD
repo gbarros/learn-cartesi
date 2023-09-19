@@ -7,6 +7,7 @@ You should have:
 - nodejs 
 - yarn
 - docker desktop
+- forge
 
 if on windows, you should have wsl2 installed and running. 
 
@@ -47,8 +48,16 @@ if on windows, you should have wsl2 installed and running.
 
 You can run your application directly from your machine (bare metal) so it's easier to debug and quicker on the re-lauching cycles. Here's how:
 
->   sunodo run --no-backend
+```bash
+sunodo run --no-backend # that starts the node infrastructure, but not the application
+```
+in another shell, run the application directly from your machine
 
+```bash
+yarn build # only needed when updating the typings or the first time
+yarn start
+```
+Now you can replay the interactions from before, but this time, the application will be running directly from your machine.
 
 ## 3. Installing Deroll
 
@@ -56,4 +65,169 @@ You can run your application directly from your machine (bare metal) so it's eas
 
     >   yarn add @deroll/app @deroll/router @deroll/wallet
 
+2. Let's start over at the `src/index.ts` with the addition of deroll.
+You can add the following snippet or copy it from the [`src/second.ts`](./src/second.ts) file in this repo.
+
+    ```typescript
+    import { createApp } from "@deroll/app";
+
+    const rollupServer = process.env.ROLLUP_HTTP_SERVER_URL || "http://localhost:8080/host-runner";
+
+    const app = createApp({ url: rollupServer });
+    // TODO: add input handlers here
+    app.start().catch((e) => process.exit(1));
+    ```
+
+You can run the application again using `sunodo run --no-backend`, and then `yarn start` in another shell.
+
+As you probably you could've guessed from the snippet, this can't do much. Let's add some input handlers.
+
+
+## 4. Adding Handlers
+
+
+### 4.1. Adding Advance Handler
+
+In this section we are learning how to handle base layer input transactions. More specifically, we are going to follow the Solidity ABI standards for this tutorial, but you are not limited by it.
+
+You can check the final version of the index file after the following steps in the [`src/third.ts`](./src/third.ts) file in this repo.
+
+1. Add viem imports
+
+    ``` typescript
+    import { decodeFunctionData, parseAbi } from "viem";
+    ```
+
+2. Define some 'solidity functions' to be used in the next step, here is an example:
+
+    ``` typescript
+    const abi = parseAbi([
+        "function balanceOf(address userAddr)",
+        "function sayHello()",
+    ]);
+    ```
+
+3. Add a new default handler for `advance` requests (input txs)
+
+    ``` typescript
+
+    app.addAdvanceHandler(async ({ payload }) => {
+        console.log("Received advance request data " + JSON.stringify(payload))
+        const { functionName, args } = decodeFunctionData({ abi, data: payload });
+        switch (functionName) {
+            case "balanceOf":
+                const [userAddr] = args;
+                console.log(`The ${userAddr} balance is...`);
+                return "accept";
+
+            case "sayHello":
+                console.log(`Hello!"`);
+                return "accept";
+        }
+    });
+    ```
+
+4. Test with an input
+
+    First we need to enconde the message, like we are going to send it to a solidy contract:
+
+    > cast calldata "balanceOf(address)" 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+
+    it outputs:
+
+    > 0x70a08231000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266
+
+    so now we can send it using sunodo:
+
+    ```bash
+     sunodo send generic --input=0x70a08231000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266 --input-encoding=hex
+    ```
+
+    Try by yourself to send a "sayHello" request.
+
+
+### 4.2 Let's play with routes
+
+Deroll comes with the option to use routes, so it's easier to manage the functions that need to act on a input.
+
+To help us to also manage funds, we are also going to use the `@deroll/wallet` library.
+
+As usual, you can find the final script at [`src/fourth.ts`](./src/fourth.ts) file in this repo.
+1. Import the libs    
+    ```typescript
+    import { createRouter } from "@deroll/router";
+    import { createWallet } from "@deroll/wallet";
+    ```
+2. Create a wallet instance
+    ```typescript
+    const wallet = createWallet();
+    ```
+3. Create a router instance
+    ```typescript
+    const router = createRouter({ app });
+    ```    
+4. Let's register the default handlers of the wallet
+    ```typescript
+    app.addAdvanceHandler(wallet.handler);
+    ```
+
+5. Let's handle the possible errors of ABI decoding. At the last section for the advanceHandler, add a try/catch block as such:
+
+    ```typescript
+    app.addAdvanceHandler(async ({ payload }) => {
+        try{ 
+            const { functionName, args } = decodeFunctionData({ abi, data: payload });
+        
+            switch (functionName) {
+                case "balanceOf":
+                    const [userAddr] = args;
+                    console.log(`The ${userAddr} balance is...`);
+                    return "accept";
+        
+                case "sayHello":
+                    console.log(`Hello!"`);
+                    return "accept";
+            }
+
+        } catch(e) {
+            console.log('error decoding function data', e)
+            return "reject";
+        }
+    });
+    ```
+
+6. Now modify the balanceOf to actually check balances. Add:
+    ```typescript
+    console.log(`The ${userAddr} balance is ${wallet.balanceOf(userAddr)}`);
+    ```
+
+    and you can check again that the balance was actually modified:
+    ```bash
+     sunodo send generic --input=0x70a08231000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266 --input-encoding=hex
+    ```
+
+7. Let's add a route on the inspect mode to check the balance.
+
+    Here is an example of a route to check the balances:
+
+    ```typescript
+    router.add<{ address: string }>(
+        "wallet/:address",
+        ({ params: { address } }) => {
+            console.log('wallet handler called', address)
+            return JSON.stringify({
+                balance: wallet.balanceOf(address).toString(),
+            });
+        },
+    );
+    ```
+    Add it to the routes of the app like so:    
+    ```typescript
+    app.addInspectHandler(router.handler);
+    ``````
+
+    you should be able to check the balance of the address you used before:
+    ```bash
+    curl http://localhost:8080/inspect/wallet/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+    ```
 

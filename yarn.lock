@@ -14,10 +14,18 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
-"@deroll/app@0.3.0", "@deroll/app@^0.3.0":
+"@deroll/app@0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@deroll/app/-/app-0.3.0.tgz#27ac0818ba67ad5e1c7b4976f6d55f1b87df40b1"
   integrity sha512-r1VYk1zzgH97BfchlzgTkW03sjOxYXii4zIX5KeUwzSZ4PkjUij7r6mzKK3s7i+cR6EOt9ue+iBTZfTvYCKuwQ==
+  dependencies:
+    openapi-fetch "^0.7"
+    viem "^1"
+
+"@deroll/app@^0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@deroll/app/-/app-0.4.0.tgz#b80527e76380ec5934617debc7b526585bbbd49e"
+  integrity sha512-tTgPkndfa++MC/2DiR54D37H1kUhL0bqU/AH7WJhlz5XsPfQlKpJCTXnGtt8UrYq/tKuFze6iLrghowdlR0N6Q==
   dependencies:
     openapi-fetch "^0.7"
     viem "^1"
