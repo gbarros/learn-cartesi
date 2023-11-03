@@ -43,7 +43,7 @@ if on windows, you should have wsl2 installed and running.
 
 5. Send a generic message to the node
 
-    > sunodo send generic input="Your Msg Here"
+    > sunodo send generic --input="Your Msg Here"
 
     Use the this [online tool](https://string-functions.com/hex-string.aspx) to convert the payload from hex to string 
 
