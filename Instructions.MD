@@ -27,6 +27,8 @@ if on windows, you should have wsl2 installed and running.
 3. run your node for the 1st time
 
     ```bash
+    sunodo create example-app --template javascript
+    cd example-app
     sunodo build
     sunodo run
     ``````
